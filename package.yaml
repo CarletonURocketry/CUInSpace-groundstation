@@ -1,0 +1,32 @@
+name: CUInSpace-groundstation
+version: '0.1.0.0'
+#synopsis:
+#description:
+##category:
+author: Ian Dewan
+maintainer: ian.dewan@ncf.ca
+#copyright: 2017 Ian Dewan
+#license: GPL
+
+dependencies:
+    - base
+    - bytestring
+    - cereal
+    - hsqml
+    - linear
+    - pipes
+    - pipes-bytestring
+    - serial
+    - stm
+    - text
+    - time
+ghc-options:
+    - -O2
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+
+executables:
+    groundstation:
+        main: Main.hs
+        source-dirs: src
