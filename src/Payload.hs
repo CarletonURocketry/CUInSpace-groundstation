@@ -9,7 +9,9 @@ module Payload (
 import Data.Word (Word8, Word16)
 import Data.Serialize.Get (Get, getWord8, getWord16le)
 import Data.Serialize.IEEE754 (getFloat32le)
-import Data.Time.Clock (picosecondsToDiffTime)
+import Data.Text (pack)
+import Data.Time (picosecondsToDiffTime, timeToTimeOfDay)
+import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef, newObjectDC)
 import Linear.Quaternion (Quaternion(..))
 import Linear.V3 (V3(..))
 
@@ -79,10 +81,32 @@ payloadFrame = do
 
 getGpsData :: Get GpsData
 getGpsData = do
-    utcTime <- fmap (picosecondsToDiffTime . round . (1e6 *)) getFloat32le
+    utcTime <- fmap (timeToTimeOfDay . picosecondsToDiffTime . round . (1e6 *)) getFloat32le
     latitude <- fmap realToFrac getFloat32le
     longitude <- fmap fromIntegral getWord16le
     groundSpeed <- fmap fromIntegral getWord16le
     course <- fmap fromIntegral getWord16le
     missionTimeCollected <- fmap round getFloat32le
     return $ GpsData {..}
+
+instance DefaultClass ContainerFrame where
+    classMembers = [
+        defPropertyRO "gps" (newObjectDC . conGpsData . fromObjRef),
+        defPropertyRO "altitude" (return . (realToFrac :: Float -> Double) . conAltitude . fromObjRef),
+        defPropertyRO "pressure" (return . (realToFrac :: Float -> Double) . conPressure . fromObjRef),
+        defPropertyRO "temperature" (return . (realToFrac :: Float -> Double) . conTemperature . fromObjRef),
+        defPropertyRO "batteryVoltage" (return . (realToFrac :: Float -> Double) . conBatteryVoltage . fromObjRef),
+        defPropertyRO "deployed" (return . pack . show . conDeployedByte . fromObjRef),
+        defPropertyRO "state" (return . pack . show . conStateByte . fromObjRef)]
+
+instance DefaultClass PayloadFrame where
+    classMembers = [
+        defPropertyRO "gps" (newObjectDC . paylGpsData . fromObjRef),
+        defPropertyRO "altitude" (return . (realToFrac :: Float -> Double) . paylAltitude . fromObjRef),
+        defPropertyRO "pressure" (return . (realToFrac :: Float -> Double) . paylPressure . fromObjRef),
+        defPropertyRO "temperature" (return . (realToFrac :: Float -> Double) . paylTemperature . fromObjRef),
+        defPropertyRO "airspeed" (return . (realToFrac :: Float -> Double) . paylAirspeed . fromObjRef),
+        defPropertyRO "attitude" (return . qtol . paylAttitude . fromObjRef),
+        defPropertyRO "batteryVoltage" (return . (realToFrac :: Float -> Double) . paylBatteryVoltage . fromObjRef),
+        defPropertyRO "state" (return . pack . show . paylStateByte . fromObjRef)]
+      where qtol (Quaternion r (V3 i j k)) = [realToFrac r, realToFrac i, realToFrac j, realToFrac k] :: [Double]

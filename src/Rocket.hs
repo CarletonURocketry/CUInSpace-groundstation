@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RankNTypes, RecordWildCards, TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 module Rocket (
     RocketFrame,
     GpsData(..),
@@ -9,9 +9,10 @@ module Rocket (
 import Data.Bits ((.&.), testBit)
 import Data.Int (Int8)
 import Data.Serialize.Get (Get, getInt8, getInt16le, getInt32le, getWord16le, getWord32le, skip)
-import qualified Data.Text as T
-import Data.Time.Clock (DiffTime, picosecondsToDiffTime)
+import Data.Text (pack)
+import Data.Time (TimeOfDay, defaultTimeLocale, formatTime, picosecondsToDiffTime, timeToTimeOfDay)
 import Data.Word (Word32)
+import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef)
 
 data RocketFrame = RocketFrame {
     missionTime :: Word32, -- ^ Time since initialization at which the packet was sent (ms).
@@ -36,7 +37,7 @@ data RocketFrame = RocketFrame {
 }
 
 data GpsData = GpsData {
-    utcTime :: DiffTime,
+    utcTime :: TimeOfDay,
     latitude :: Double, -- ^ °
     longitude :: Double, -- ^ °
     groundSpeed :: Double, -- ^ m/s
@@ -99,7 +100,7 @@ rocketFrame = do
     let altimeterTemp = fromIntegral tempIntPart + (fromIntegral (tempFracPart .&. 0xF0) / 256)
     gpsData <- if gpsDataValid 
         then do
-            utcTime <- fmap (picosecondsToDiffTime . (1000000000 *) . fromIntegral) getWord32le
+            utcTime <- fmap (timeToTimeOfDay . picosecondsToDiffTime . (1000000000 *) . fromIntegral) getWord32le
             latitude <- fmap ((6e-3 *) . fromIntegral) getInt32le
             longitude <- fmap ((6e-3 *) . fromIntegral) getInt32le
             groundSpeed <- fmap ((0.00514444 *) . fromIntegral) getInt32le
@@ -108,3 +109,32 @@ rocketFrame = do
             return . Just $ GpsData {..}
         else skip 20 >> return Nothing
     return $ RocketFrame {..}
+
+instance DefaultClass RocketFrame where
+    classMembers = [
+        defPropertyRO "missionTime" (return . (fromIntegral :: Word32 -> Int) . missionTime . fromObjRef),
+        defPropertyRO "capacitorVoltage" (return . capacitorVoltage . fromObjRef),
+        defPropertyRO "batteryVoltage" (return . batteryVoltage . fromObjRef),
+        defPropertyRO "batteryTemp" (return . batteryTemp . fromObjRef),
+        defPropertyRO "ambientTemp" (return . ambientTemp . fromObjRef),
+        defPropertyRO "altimeterTemp" (return . altimeterTemp . fromObjRef),
+        defPropertyRO "rocketState" (return . pack . show . rocketState . fromObjRef),
+        defPropertyRO "ematch1Present" (return . ematch1Present . fromObjRef),
+        defPropertyRO "ematch2Present" (return . ematch2Present . fromObjRef),
+        defPropertyRO "parachuteDeployed" (return . parachuteDeployed . fromObjRef),
+        defPropertyRO "accelX" (return . accelX . fromObjRef),
+        defPropertyRO "accelY" (return . accelY . fromObjRef),
+        defPropertyRO "accelZ" (return . accelZ . fromObjRef),
+        defPropertyRO "pitch" (return . pitch . fromObjRef),
+        defPropertyRO "yaw" (return . yaw . fromObjRef),
+        defPropertyRO "roll" (return . roll . fromObjRef),
+        defPropertyRO "altitude" (return . altitude . fromObjRef)]
+
+instance DefaultClass GpsData where
+    classMembers = [
+        defPropertyRO "time" (return . pack . formatTime defaultTimeLocale "%T" . utcTime . fromObjRef),
+        defPropertyRO "latitude" (return . latitude . fromObjRef),
+        defPropertyRO "longitude" (return . longitude . fromObjRef),
+        defPropertyRO "groundSpeed" (return . groundSpeed . fromObjRef),
+        defPropertyRO "course" (return . course . fromObjRef),
+        defPropertyRO "missionTime" (return . (fromIntegral :: Word32 -> Int) . missionTimeCollected . fromObjRef)]
