@@ -36,19 +36,19 @@ xBeeFrame = do
     let contentLen = totalLen - crcLen
     if destAddr /= 0
         then term totalLen NotForUs
-        else if srcAddr == 1 || srcAddr > 4
+        else if not (srcAddr `elem` [0x00, 0x02, 0x11, 0x12])
             then term totalLen (InvalidSource srcAddr)
             else case frameType of
-                1 -> if srcAddr == 2
+                1 -> if srcAddr == 0x02
                     then fmap (GoodFrame . RocketPrimary) (isolate contentLen rocketFrame) >>= term crcLen
                     else term totalLen (ImpossibleSource srcAddr)
-                2 -> if srcAddr == 2
+                2 -> if srcAddr == 0x02
                     then term totalLen (GoodFrame RocketAuxilliary)
                     else term totalLen (ImpossibleSource srcAddr)
-                3 -> if srcAddr == 3
+                3 -> if srcAddr == 0x11
                     then fmap (GoodFrame . UAVTelemetry) (isolate contentLen payloadFrame) >>= term crcLen
                     else term totalLen (ImpossibleSource srcAddr)
-                4 -> if srcAddr == 4
+                4 -> if srcAddr == 0x12
                     then fmap (GoodFrame . ContainerTelemetry) (isolate contentLen containerFrame) >>= term crcLen
                     else term totalLen (ImpossibleSource srcAddr)
                 _ -> term totalLen (InvalidType frameType)
