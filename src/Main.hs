@@ -24,7 +24,7 @@ main = do
     forM_ serialDevs $ \s -> forkIO $ serialDeviceThread s logQueue frameChan
     forkIO $ atomically (dupTChan frameChan) >>= sqliteThread sqliteDb
     loggerThread logQueue
-  where argParse = info ((,) <$> many serialArg <*> dbArg)
+  where argParse = info ((,) <$> some serialArg <*> dbArg)
             (progDesc "groundstation - CU In Space Ground Station")
         serialArg = strArgument
             (help "Serial devices to read from." <> metavar "FILE")
