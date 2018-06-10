@@ -14,6 +14,7 @@ dependencies:
     - cereal
     - hsqml
     - linear
+    - optparse-applicative
     - pipes
     - pipes-bytestring
     - serial

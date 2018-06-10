@@ -1,10 +1,13 @@
 module Main where
 
-import Control.Concurrent.STM (TChan, TQueue, atomically, readTChan, writeTChan, writeTQueue)
-import Control.Monad (forever)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.STM (TChan, TQueue, atomically, dupTChan, newBroadcastTChan, newTQueue, readTChan, readTQueue, writeTChan, writeTQueue)
+import Control.Monad (forever, forM_)
 import qualified Data.ByteString as B
+import Data.Monoid ((<>))
 import Data.Serialize.Get (Result(..), runGetPartial)
 import Database.SQLite.Simple (withConnection, withTransaction)
+import Options.Applicative
 import Pipes
 import Pipes.ByteString (fromHandle)
 import System.IO (hClose)
@@ -15,7 +18,19 @@ import Rocket
 import XBee
 
 main :: IO ()
-main = return ()
+main = do
+    (serialDevs, sqliteDb) <- execParser argParse
+    (logQueue, frameChan) <- atomically $ (,) <$> newTQueue <*> newBroadcastTChan
+    forM_ serialDevs $ \s -> forkIO $ serialDeviceThread s logQueue frameChan
+    forkIO $ atomically (dupTChan frameChan) >>= sqliteThread sqliteDb
+    loggerThread logQueue
+  where argParse = info ((,) <$> many serialArg <*> dbArg)
+            (progDesc "groundstation - CU In Space Ground Station")
+        serialArg = strArgument
+            (help "Serial devices to read from." <> metavar "FILE")
+        dbArg = strOption
+            (short 'l' <> long "log" <> help "SQLite database to log to." <>
+            metavar "FILE" <> value "log.db")
 
 serialDeviceThread :: String -> TQueue String -> TChan Frame -> IO ()
 serialDeviceThread dev logger frames = do
@@ -46,3 +61,6 @@ sqliteThread db frames = withConnection db $ \conn -> forever $ do
         RocketAuxilliary -> return ()
         UAVTelemetry pf -> writePayloadFrame pf conn
         ContainerTelemetry cf -> writeContainerFrame cf conn
+
+loggerThread :: TQueue String -> IO ()
+loggerThread logs = forever $ atomically (readTQueue logs) >>= putStrLn
