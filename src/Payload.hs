@@ -1,21 +1,25 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module Payload (
     ContainerFrame,
     PayloadFrame,
     containerFrame,
-    payloadFrame
+    payloadFrame,
+    writeContainerFrame,
+    writePayloadFrame
 ) where
 
-import Data.Word (Word8, Word16)
+import Data.Monoid ((<>))
 import Data.Serialize.Get (Get, getWord8, getWord16le)
 import Data.Serialize.IEEE754 (getFloat32le)
 import Data.Text (pack)
 import Data.Time (picosecondsToDiffTime, timeToTimeOfDay)
+import Data.Word (Word8, Word16)
+import Database.SQLite.Simple (Connection, NamedParam(..), executeNamed)
 import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef, newObjectDC)
 import Linear.Quaternion (Quaternion(..))
 import Linear.V3 (V3(..))
 
-import Rocket (GpsData(..))
+import Rocket (GpsData(..), writeGpsData)
 
 -- FIXME: what is the endianness of the multibyte quatities in the payload data?
 -- Why is the time since midnight measured in milliSiemens?
@@ -110,3 +114,47 @@ instance DefaultClass PayloadFrame where
         defPropertyRO "batteryVoltage" (return . (realToFrac :: Float -> Double) . paylBatteryVoltage . fromObjRef),
         defPropertyRO "state" (return . pack . show . paylStateByte . fromObjRef)]
       where qtol (Quaternion r (V3 i j k)) = [realToFrac r, realToFrac i, realToFrac j, realToFrac k] :: [Double]
+
+writeContainerFrame :: ContainerFrame -> Connection -> IO ()
+writeContainerFrame (ContainerFrame {..}) conn = do
+    rid <- writeGpsData conGpsData conn
+    executeNamed conn conQuery [
+        ":v" := conVehicle,
+        ":pc" := conPacket,
+        ":alt" := conAltitude,
+        ":p" := conPressure,
+        ":t" := conTemperature,
+        ":bv" := conBatteryVoltage,
+        ":d" := conDeployedByte,
+        ":st" := conStateByte,
+        ":rid" := rid]
+  where conQuery = "INSERT INTO Rocket_Telemetry " <>
+            "(Vehicle, Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
+            "Battery_Voltage, Deployed_Byte, State) " <>
+            "SELECT :v, :pc, FrameID, :alt, :p, :t, :bv, :d, :st " <>
+            "FROM GPS WHERE rowid == :rid;"
+
+writePayloadFrame :: PayloadFrame -> Connection -> IO ()
+writePayloadFrame (PayloadFrame {..}) conn = do
+    let Quaternion r (V3 i j k) = paylAttitude
+    rid <- writeGpsData paylGpsData conn
+    executeNamed conn conQuery [
+        ":v" := paylVehicle,
+        ":pc" := paylPacket,
+        ":alt" := paylAltitude,
+        ":p" := paylPressure,
+        ":t" := paylTemperature,
+        ":vair" := paylAirspeed,
+        ":r" := r,
+        ":i" := i,
+        ":j" := j,
+        ":k" := k,
+        ":bv" := paylBatteryVoltage,
+        ":st" := paylStateByte,
+        ":rid" := rid]
+  where conQuery = "INSERT INTO Rocket_Telemetry " <>
+            "(Vehicle, Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
+            "Airspeed, Attitude_Real, Attitude_I, Attitude_J, Attitude_K, " <>
+            "Battery_Voltage, State) " <>
+            "SELECT :v, :pc, FrameID, :alt, :p, :t, :vair, :r, :i, :j, :k, :bv, :st " <>
+            "FROM GPS WHERE rowid == :rid;"

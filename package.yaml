@@ -17,6 +17,7 @@ dependencies:
     - pipes
     - pipes-bytestring
     - serial
+    - sqlite-simple
     - stm
     - text
     - time

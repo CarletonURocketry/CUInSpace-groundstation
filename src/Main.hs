@@ -1,13 +1,17 @@
 module Main where
 
-import Control.Concurrent.STM (TChan, TQueue, atomically, writeTChan, writeTQueue)
+import Control.Concurrent.STM (TChan, TQueue, atomically, readTChan, writeTChan, writeTQueue)
+import Control.Monad (forever)
 import qualified Data.ByteString as B
 import Data.Serialize.Get (Result(..), runGetPartial)
+import Database.SQLite.Simple (withConnection, withTransaction)
 import Pipes
 import Pipes.ByteString (fromHandle)
 import System.IO (hClose)
 import System.Serial (BaudRate(..), FlowControl(..), Parity(..), StopBits(..), openSerial)
 
+import Payload
+import Rocket
 import XBee
 
 main :: IO ()
@@ -33,3 +37,12 @@ serialDeviceThread dev logger frames = do
                 ImpossibleSource s -> enlog $ "Frame source " ++ show s ++ " produced impossible frame type."
             nextFrame rest
         enlog = void . liftIO . atomically . writeTQueue logger
+
+sqliteThread :: String -> TChan Frame -> IO ()
+sqliteThread db frames = withConnection db $ \conn -> forever $ do
+    fr <- atomically (readTChan frames)
+    withTransaction conn $ case fr of
+        RocketPrimary rf -> writeRocketFrame rf conn
+        RocketAuxilliary -> return ()
+        UAVTelemetry pf -> writePayloadFrame pf conn
+        ContainerTelemetry cf -> writeContainerFrame cf conn

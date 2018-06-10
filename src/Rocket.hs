@@ -1,17 +1,21 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module Rocket (
     RocketFrame,
     GpsData(..),
     State(..),
-    rocketFrame
+    rocketFrame,
+    writeGpsData,
+    writeRocketFrame
 ) where
 
 import Data.Bits ((.&.), testBit)
-import Data.Int (Int8)
+import Data.Int (Int8, Int64)
+import Data.Monoid ((<>))
 import Data.Serialize.Get (Get, getInt8, getInt16le, getInt32le, getWord16le, getWord32le, skip)
 import Data.Text (pack)
 import Data.Time (TimeOfDay, defaultTimeLocale, formatTime, picosecondsToDiffTime, timeToTimeOfDay)
 import Data.Word (Word32)
+import Database.SQLite.Simple (Connection, NamedParam(..), executeNamed, lastInsertRowId)
 import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef)
 
 data RocketFrame = RocketFrame {
@@ -138,3 +142,76 @@ instance DefaultClass GpsData where
         defPropertyRO "groundSpeed" (return . groundSpeed . fromObjRef),
         defPropertyRO "course" (return . course . fromObjRef),
         defPropertyRO "missionTime" (return . (fromIntegral :: Word32 -> Int) . missionTimeCollected . fromObjRef)]
+
+writeGpsData :: GpsData -> Connection -> IO Int64
+writeGpsData (GpsData {..}) conn = do
+    executeNamed conn gpsQuery [
+        ":time" := (pack . formatTime defaultTimeLocale "%T%Q" $ utcTime),
+        ":lat" := latitude,
+        ":long" := longitude,
+        ":gs" := groundSpeed,
+        ":course" := course,
+        ":mtime" := missionTimeCollected]
+    lastInsertRowId conn
+  where gpsQuery = "INSERT INTO GPS " <>
+            "(GPS_Time, Latitude, Longitude, Speed, Course, Mission_Time) " <>
+            "VALUES (:time, :lat, :long, :gs, :course, :mtime);"
+
+writeRocketFrame :: RocketFrame -> Connection -> IO ()
+writeRocketFrame (RocketFrame {..}) conn = case gpsData of
+    Just gd -> do
+        rid <- writeGpsData gd conn
+        executeNamed conn withGpsQuery [
+            ":mt" := missionTime,
+            ":cv" := capacitorVoltage,
+            ":bv" := batteryVoltage,
+            ":bt" := batteryTemp,
+            ":ambt" := ambientTemp,
+            ":gt" := gyroTemp,
+            ":altt" := altimeterTemp,
+            ":st" := (pack . show $ rocketState),
+            ":e1" := ematch1Present,
+            ":e2" := ematch2Present,
+            ":par" := parachuteDeployed,
+            ":ax" := accelX,
+            ":ay" := accelY,
+            ":az" := accelZ,
+            ":p" := pitch,
+            ":y" := yaw,
+            ":r" := roll,
+            ":alt" := altitude,
+            ":rid" := rid]
+    Nothing -> executeNamed conn withoutGpsQuery [
+            ":mt" := missionTime,
+            ":cv" := capacitorVoltage,
+            ":bv" := batteryVoltage,
+            ":bt" := batteryTemp,
+            ":ambt" := ambientTemp,
+            ":gt" := gyroTemp,
+            ":altt" := altimeterTemp,
+            ":st" := (pack . show $ rocketState),
+            ":e1" := ematch1Present,
+            ":e2" := ematch2Present,
+            ":par" := parachuteDeployed,
+            ":ax" := accelX,
+            ":ay" := accelY,
+            ":az" := accelZ,
+            ":p" := pitch,
+            ":y" := yaw,
+            ":r" := roll,
+            ":alt" := altitude]
+  where withGpsQuery = "INSERT INTO Rocket_Telemetry " <>
+            "(Mission_Time, Capacitor_Voltage, Battery_Voltage, Battery_Temp, Ambient_Temp, " <>
+            "State, E_Match_1_Present, E_Match_2_Present, Parachute_Deployed, Acceleration_X, " <>
+            "Acceleration_Y, Acceleration_Z, Pitch_Rate, Roll_Rate, Yaw_Rate, Gyro_Temp, " <>
+            "Altitude, Alt_Temp, GPS_Data) " <>
+            "SELECT :mt, :cv, :bv, :bt, :ambt, :st, :e1, :e2, :par, :ax, :ay, :az, :p, :r, :y, " <>
+            ":gt, :alt, :altt, FrameID " <>
+            "FROM GPS WHERE rowid == :rid;"
+        withoutGpsQuery = "INSERT INTO Rocket_Telemetry " <>
+            "(Mission_Time, Capacitor_Voltage, Battery_Voltage, Battery_Temp, Ambient_Temp, " <>
+            "State, E_Match_1_Present, E_Match_2_Present, Parachute_Deployed, Acceleration_X, " <>
+            "Acceleration_Y, Acceleration_Z, Pitch_Rate, Roll_Rate, Yaw_Rate, Gyro_Temp, " <>
+            "Altitude, Alt_Temp, GPS_Data) " <>
+            "VALUES(:mt, :cv, :bv, :bt, :ambt, :st, :e1, :e2, :par, :ax, :ay, :az, :p, :r, :y, " <>
+            ":gt, :alt, :altt, NULL);"
