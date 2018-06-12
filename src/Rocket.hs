@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable, OverloadedStrings, RecordWildCards #-}
 module Rocket (
-    RocketFrame,
+    RocketFrame(gpsData),
     GpsData(..),
     State(..),
     rocketFrame,
@@ -14,6 +14,7 @@ import Data.Monoid ((<>))
 import Data.Serialize.Get (Get, getInt8, getInt16le, getInt32le, getWord16le, getWord32le, skip)
 import Data.Text (pack)
 import Data.Time (TimeOfDay, defaultTimeLocale, formatTime, picosecondsToDiffTime, timeToTimeOfDay)
+import Data.Typeable (Typeable)
 import Data.Word (Word32)
 import Database.SQLite.Simple (Connection, NamedParam(..), executeNamed, lastInsertRowId)
 import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef)
@@ -38,7 +39,7 @@ data RocketFrame = RocketFrame {
     roll :: Double, -- ^ Angular velocity about roll axis (°/s).
     altitude :: Double, -- ^ Altitude (m).
     gpsData :: Maybe GpsData
-}
+} deriving (Typeable)
 
 data GpsData = GpsData {
     utcTime :: TimeOfDay,
@@ -47,7 +48,7 @@ data GpsData = GpsData {
     groundSpeed :: Double, -- ^ m/s
     course :: Double, -- ^ °
     missionTimeCollected :: Word32 -- ^ ms
-}
+} deriving (Typeable)
 
 data State = Standby
            | PreFlight
@@ -122,7 +123,7 @@ instance DefaultClass RocketFrame where
         defPropertyRO "batteryTemp" (return . batteryTemp . fromObjRef),
         defPropertyRO "ambientTemp" (return . ambientTemp . fromObjRef),
         defPropertyRO "altimeterTemp" (return . altimeterTemp . fromObjRef),
-        defPropertyRO "rocketState" (return . pack . show . rocketState . fromObjRef),
+        defPropertyRO "state" (return . pack . show . rocketState . fromObjRef),
         defPropertyRO "ematch1Present" (return . ematch1Present . fromObjRef),
         defPropertyRO "ematch2Present" (return . ematch2Present . fromObjRef),
         defPropertyRO "parachuteDeployed" (return . parachuteDeployed . fromObjRef),
