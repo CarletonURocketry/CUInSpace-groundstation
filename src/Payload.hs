@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable, OverloadedStrings, RecordWildCards #-}
 module Payload (
     ContainerFrame,
     PayloadFrame,
@@ -13,6 +13,7 @@ import Data.Serialize.Get (Get, getWord8, getWord16le)
 import Data.Serialize.IEEE754 (getFloat32le)
 import Data.Text (pack)
 import Data.Time (picosecondsToDiffTime, timeToTimeOfDay)
+import Data.Typeable (Typeable)
 import Data.Word (Word8, Word16)
 import Database.SQLite.Simple (Connection, NamedParam(..), executeNamed)
 import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef, newObjectDC)
@@ -37,7 +38,7 @@ data ContainerFrame = ContainerFrame {
     conBatteryVoltage :: Float,
     conDeployedByte :: Word8,
     conStateByte :: Word8
-}
+} deriving (Typeable)
 
 data PayloadFrame = PayloadFrame {
     paylVehicle :: Word8,
@@ -50,7 +51,7 @@ data PayloadFrame = PayloadFrame {
     paylAttitude :: Quaternion Float,
     paylBatteryVoltage :: Float,
     paylStateByte :: Word8
-}
+} deriving (Typeable)
 
 containerFrame :: Get ContainerFrame
 containerFrame = do
@@ -128,7 +129,7 @@ writeContainerFrame (ContainerFrame {..}) conn = do
         ":d" := conDeployedByte,
         ":st" := conStateByte,
         ":rid" := rid]
-  where conQuery = "INSERT INTO Rocket_Telemetry " <>
+  where conQuery = "INSERT INTO Payload_Container_Telemetry " <>
             "(Vehicle, Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
             "Battery_Voltage, Deployed_Byte, State) " <>
             "SELECT :v, :pc, FrameID, :alt, :p, :t, :bv, :d, :st " <>
@@ -152,7 +153,7 @@ writePayloadFrame (PayloadFrame {..}) conn = do
         ":bv" := paylBatteryVoltage,
         ":st" := paylStateByte,
         ":rid" := rid]
-  where conQuery = "INSERT INTO Rocket_Telemetry " <>
+  where conQuery = "INSERT INTO Payload_UAV_Telemetry " <>
             "(Vehicle, Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
             "Airspeed, Attitude_Real, Attitude_I, Attitude_J, Attitude_K, " <>
             "Battery_Voltage, State) " <>
