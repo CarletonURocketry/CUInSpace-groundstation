@@ -88,7 +88,7 @@ getGpsData :: Get GpsData
 getGpsData = do
     utcTime <- fmap (timeToTimeOfDay . picosecondsToDiffTime . round . (1e6 *)) getFloat32le
     latitude <- fmap realToFrac getFloat32le
-    longitude <- fmap fromIntegral getWord16le
+    longitude <- fmap realToFrac getFloat32le
     groundSpeed <- fmap fromIntegral getWord16le
     course <- fmap fromIntegral getWord16le
     missionTimeCollected <- fmap round getFloat32le

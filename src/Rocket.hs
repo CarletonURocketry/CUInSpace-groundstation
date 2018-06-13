@@ -8,7 +8,7 @@ module Rocket (
     writeRocketFrame
 ) where
 
-import Data.Bits ((.&.), testBit)
+import Data.Bits ((.&.), shiftR, testBit)
 import Data.Int (Int8, Int64)
 import Data.Monoid ((<>))
 import Data.Serialize.Get (Get, getInt8, getInt16le, getInt32le, getWord16le, getWord32le, skip)
@@ -68,17 +68,17 @@ rocketFrame = do
     channel2 <- getWord16le
     skip 8 -- channels 3-6 unused
     channel7 <- getWord16le
-    let state2 = testBit channel0 15
-    let state1 = testBit channel0 14
-    let state0 = testBit channel0 13
-    let ematch1Present = testBit channel0 12
-    let ematch2Present = testBit channel0 11
-    let parachuteDeployed = testBit channel0 10
-    let capacitorVoltage = 0.02625071131 * fromIntegral (channel0 .&. 0x3F)
-    let gpsDataValid = testBit channel1 15
-    let batteryTemp = 0.00322265625 * fromIntegral (channel1 .&. 0x3F)
-    let ambientTemp = 0.00322265625 * fromIntegral (channel2 .&. 0x3F)
-    let batteryVoltage = 0.01434657506 * fromIntegral (channel7 .&. 0x3F)
+    let state2 = testBit channel0 0
+    let state1 = testBit channel0 1
+    let state0 = testBit channel0 2
+    let ematch1Present = testBit channel0 3
+    let ematch2Present = testBit channel0 4
+    let parachuteDeployed = testBit channel0 5
+    let capacitorVoltage = 0.02625071131 * fromIntegral (shiftR channel0 6)
+    let gpsDataValid = testBit channel1 0
+    let batteryTemp = 0.00322265625 * fromIntegral (shiftR channel1 6)
+    let ambientTemp = 0.00322265625 * fromIntegral (shiftR channel2 6)
+    let batteryVoltage = 0.01434657506 * fromIntegral (shiftR channel7 6)
     let rocketState = case (state2, state1, state0) of
             (False, False, False) -> Standby
             (False, False, True) -> PreFlight
@@ -103,13 +103,13 @@ rocketFrame = do
     tempFracPart <- getInt8
     tempIntPart <- getInt8
     let altimeterTemp = fromIntegral tempIntPart + (fromIntegral (tempFracPart .&. 0xF0) / 256)
-    gpsData <- if gpsDataValid 
+    gpsData <- if gpsDataValid
         then do
             utcTime <- fmap (timeToTimeOfDay . picosecondsToDiffTime . (1000000000 *) . fromIntegral) getWord32le
-            latitude <- fmap ((6e-3 *) . fromIntegral) getInt32le
-            longitude <- fmap ((6e-3 *) . fromIntegral) getInt32le
-            groundSpeed <- fmap ((0.00514444 *) . fromIntegral) getInt32le
-            course <- fmap ((/ 100) . fromIntegral) getInt32le
+            latitude <- fmap ((/ 60) . (1e-4 *) . fromIntegral) getInt32le
+            longitude <- fmap ((/ 60) . (1e-4 *) . fromIntegral) getInt32le
+            groundSpeed <- fmap ((0.00514444 *) . fromIntegral) getInt16le
+            course <- fmap ((/ 100) . fromIntegral) getInt16le
             missionTimeCollected <- getWord32le
             return . Just $ GpsData {..}
         else skip 20 >> return Nothing
