@@ -16,7 +16,7 @@ import Data.Time (picosecondsToDiffTime, timeToTimeOfDay)
 import Data.Typeable (Typeable)
 import Data.Word (Word8, Word16)
 import Database.SQLite.Simple (Connection, NamedParam(..), executeNamed)
-import Graphics.QML (DefaultClass(..), defPropertyRO, fromObjRef, newObjectDC)
+import Graphics.QML (DefaultClass(..), defPropertyConst, fromObjRef, newObjectDC)
 import Linear.Quaternion (Quaternion(..))
 import Linear.V3 (V3(..))
 
@@ -96,24 +96,24 @@ getGpsData = do
 
 instance DefaultClass ContainerFrame where
     classMembers = [
-        defPropertyRO "gps" (newObjectDC . conGpsData . fromObjRef),
-        defPropertyRO "altitude" (return . (realToFrac :: Float -> Double) . conAltitude . fromObjRef),
-        defPropertyRO "pressure" (return . (realToFrac :: Float -> Double) . conPressure . fromObjRef),
-        defPropertyRO "temperature" (return . (realToFrac :: Float -> Double) . conTemperature . fromObjRef),
-        defPropertyRO "batteryVoltage" (return . (realToFrac :: Float -> Double) . conBatteryVoltage . fromObjRef),
-        defPropertyRO "deployed" (return . pack . show . conDeployedByte . fromObjRef),
-        defPropertyRO "state" (return . pack . show . conStateByte . fromObjRef)]
+        defPropertyConst "gps" (newObjectDC . conGpsData . fromObjRef),
+        defPropertyConst "altitude" (return . (realToFrac :: Float -> Double) . conAltitude . fromObjRef),
+        defPropertyConst "pressure" (return . (realToFrac :: Float -> Double) . conPressure . fromObjRef),
+        defPropertyConst "temperature" (return . (realToFrac :: Float -> Double) . conTemperature . fromObjRef),
+        defPropertyConst "batteryVoltage" (return . (realToFrac :: Float -> Double) . conBatteryVoltage . fromObjRef),
+        defPropertyConst "deployed" (return . pack . show . conDeployedByte . fromObjRef),
+        defPropertyConst "state" (return . pack . show . conStateByte . fromObjRef)]
 
 instance DefaultClass PayloadFrame where
     classMembers = [
-        defPropertyRO "gps" (newObjectDC . paylGpsData . fromObjRef),
-        defPropertyRO "altitude" (return . (realToFrac :: Float -> Double) . paylAltitude . fromObjRef),
-        defPropertyRO "pressure" (return . (realToFrac :: Float -> Double) . paylPressure . fromObjRef),
-        defPropertyRO "temperature" (return . (realToFrac :: Float -> Double) . paylTemperature . fromObjRef),
-        defPropertyRO "airspeed" (return . (realToFrac :: Float -> Double) . paylAirspeed . fromObjRef),
-        defPropertyRO "attitude" (return . qtol . paylAttitude . fromObjRef),
-        defPropertyRO "batteryVoltage" (return . (realToFrac :: Float -> Double) . paylBatteryVoltage . fromObjRef),
-        defPropertyRO "state" (return . pack . show . paylStateByte . fromObjRef)]
+        defPropertyConst "gps" (newObjectDC . paylGpsData . fromObjRef),
+        defPropertyConst "altitude" (return . (realToFrac :: Float -> Double) . paylAltitude . fromObjRef),
+        defPropertyConst "pressure" (return . (realToFrac :: Float -> Double) . paylPressure . fromObjRef),
+        defPropertyConst "temperature" (return . (realToFrac :: Float -> Double) . paylTemperature . fromObjRef),
+        defPropertyConst "airspeed" (return . (realToFrac :: Float -> Double) . paylAirspeed . fromObjRef),
+        defPropertyConst "attitude" (return . qtol . paylAttitude . fromObjRef),
+        defPropertyConst "batteryVoltage" (return . (realToFrac :: Float -> Double) . paylBatteryVoltage . fromObjRef),
+        defPropertyConst "state" (return . pack . show . paylStateByte . fromObjRef)]
       where qtol (Quaternion r (V3 i j k)) = [realToFrac r, realToFrac i, realToFrac j, realToFrac k] :: [Double]
 
 writeContainerFrame :: ContainerFrame -> Connection -> IO ()
