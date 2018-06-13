@@ -131,6 +131,7 @@ Window {
 		ListElement { group: "Rocket Status"; caption: "E-Match 1" }
 		ListElement { group: "Rocket Status"; caption: "E-Match 2" }
 		ListElement { group: "Rocket Status"; caption: "Chute Deployed" }
+		ListElement { group: "Rocket Status"; caption: "Mission Time" }
 		ListElement { group: "Rocket Status"; caption: "Battery Voltage" }
 		ListElement { group: "Rocket Status"; caption: "Capacitor Voltage" }
 		ListElement { group: "Rocket Location"; caption: "Latitude" }
@@ -178,6 +179,7 @@ Window {
 		"Rocket Status:E-Match 1": function() { return rocket == null ? "ND" : (rocket.eMatch1Present ? "Present" : "Not Present") },
 		"Rocket Status:E-Match 2": function() { return rocket == null ? "ND" : (rocket.eMatch2Present ? "Present" : "Not Present") },
 		"Rocket Status:Chute Deployed": function() { return rocket == null ? "ND" : (rocket.parachuteDeployed ? "Yes" : "No") },
+		"Rocket Status:Mission Time": function() { return rocket == null ? "ND" : rocket.missionTime },
 		"Rocket Status:Battery Voltage": function() { return rocket == null ? "ND" : rocket.batteryVoltage + " V" },
 		"Rocket Status:Capacitor Voltage": function() { return rocket == null ? "ND" : rocket.capacitorVoltage + " V" },
 		"Rocket Location:Latitude": function() { return rocketGps == null ? "ND" : niceLatLong(rocketGps.latitude, "N", "S") },
