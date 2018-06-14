@@ -13,7 +13,7 @@ import Rocket
 import Payload
 
 data XBeeResult = GoodFrame Frame -- ^ A valid frame.
-                | NotForUs -- ^ A frame intended for another recipient. 
+                | NotForUs -- ^ A frame intended for another recipient.
                 | InvalidSource Word8 -- ^ Not a valid source address.
                 | InvalidType Word8 -- ^ Not a valid frame type.
                 | ImpossibleSource Word8 -- ^ Source address cannot produce this type of frame.
@@ -28,30 +28,27 @@ xBeeFrame = do
     initByte <- getWord8
     when (initByte /= 0x52) $ fail "Invalid start byte in XBee frame."
     srcAddr <- getWord8
-    destAddr <- getWord8
-    frameType <- getWord8
-    lenField <- getWord16le
-    let totalLen = fromIntegral $ (lenField .&. 0x7F)
-    let crcLen = if testBit lenField 15 then 1 else 0
-    let contentLen = totalLen - crcLen
-    if destAddr /= 0
-        then term totalLen NotForUs
-        else if not (srcAddr `elem` [0x00, 0x02, 0x11, 0x12])
-            then term totalLen (InvalidSource srcAddr)
-            else case frameType of
-                1 -> if srcAddr == 0x02
-                    then fmap (GoodFrame . RocketPrimary) (isolate contentLen rocketFrame) >>= term crcLen
-                    else term totalLen (ImpossibleSource srcAddr)
-                2 -> if srcAddr == 0x02
-                    then term totalLen (GoodFrame RocketAuxilliary)
-                    else term totalLen (ImpossibleSource srcAddr)
-                3 -> if srcAddr == 0x11
-                    then fmap (GoodFrame . UAVTelemetry) (isolate contentLen payloadFrame) >>= term crcLen
-                    else term totalLen (ImpossibleSource srcAddr)
-                4 -> if srcAddr == 0x12
-                    then fmap (GoodFrame . ContainerTelemetry) (isolate contentLen containerFrame) >>= term crcLen
-                    else term totalLen (ImpossibleSource srcAddr)
-                _ -> term totalLen (InvalidType frameType)
+    case srcAddr of
+        0x02 -> do
+            destAddr <- getWord8
+            frameType <- getWord8
+            lenField <- getWord16le
+            let totalLen = fromIntegral $ (lenField .&. 0x7F)
+            let crcLen = if testBit lenField 15 then 1 else 0
+            let contentLen = totalLen - crcLen
+            if destAddr /= 0
+                then term totalLen NotForUs
+                else case frameType of
+                    1 -> if srcAddr == 0x02
+                        then fmap (GoodFrame . RocketPrimary) (isolate contentLen rocketFrame) >>= term crcLen
+                        else term totalLen (ImpossibleSource srcAddr)
+                    2 -> if srcAddr == 0x02
+                        then term totalLen (GoodFrame RocketAuxilliary)
+                        else term totalLen (ImpossibleSource srcAddr)
+                    _ -> term totalLen (InvalidType frameType)
+        0x11 -> fmap (GoodFrame . UAVTelemetry) payloadFrame >>= term 1
+        0x12 -> fmap (GoodFrame . ContainerTelemetry) containerFrame >>= term 1
+        _ -> return (InvalidSource srcAddr)
   where term n v = do
             skip n
             finiByte <- getWord8

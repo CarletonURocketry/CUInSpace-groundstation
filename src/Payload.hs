@@ -29,7 +29,6 @@ import Rocket (GpsData(..), writeGpsData)
 -- Order of quaternion components?
 
 data ContainerFrame = ContainerFrame {
-    conVehicle :: Word8,
     conPacket :: Word16,
     conGpsData :: GpsData,
     conAltitude :: Float,
@@ -41,7 +40,6 @@ data ContainerFrame = ContainerFrame {
 } deriving (Typeable)
 
 data PayloadFrame = PayloadFrame {
-    paylVehicle :: Word8,
     paylPacket :: Word16,
     paylGpsData :: GpsData,
     paylAltitude :: Float,
@@ -55,7 +53,6 @@ data PayloadFrame = PayloadFrame {
 
 containerFrame :: Get ContainerFrame
 containerFrame = do
-    conVehicle <- getWord8
     conPacket <- getWord16le
     conGpsData <- getGpsData
     conAltitude <- getFloat32le
@@ -68,7 +65,6 @@ containerFrame = do
 
 payloadFrame :: Get PayloadFrame
 payloadFrame = do
-    paylVehicle <- getWord8
     paylPacket <- getWord16le
     paylGpsData <- getGpsData
     paylAltitude <- getFloat32le
@@ -120,7 +116,6 @@ writeContainerFrame :: ContainerFrame -> Connection -> IO ()
 writeContainerFrame (ContainerFrame {..}) conn = do
     rid <- writeGpsData conGpsData conn
     executeNamed conn conQuery [
-        ":v" := conVehicle,
         ":pc" := conPacket,
         ":alt" := conAltitude,
         ":p" := conPressure,
@@ -130,9 +125,9 @@ writeContainerFrame (ContainerFrame {..}) conn = do
         ":st" := conStateByte,
         ":rid" := rid]
   where conQuery = "INSERT INTO Payload_Container_Telemetry " <>
-            "(Vehicle, Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
+            "(Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
             "Battery_Voltage, Deployed_Byte, State) " <>
-            "SELECT :v, :pc, FrameID, :alt, :p, :t, :bv, :d, :st " <>
+            "SELECT :pc, FrameID, :alt, :p, :t, :bv, :d, :st " <>
             "FROM GPS WHERE rowid == :rid;"
 
 writePayloadFrame :: PayloadFrame -> Connection -> IO ()
@@ -140,7 +135,6 @@ writePayloadFrame (PayloadFrame {..}) conn = do
     let Quaternion r (V3 i j k) = paylAttitude
     rid <- writeGpsData paylGpsData conn
     executeNamed conn conQuery [
-        ":v" := paylVehicle,
         ":pc" := paylPacket,
         ":alt" := paylAltitude,
         ":p" := paylPressure,
@@ -154,8 +148,8 @@ writePayloadFrame (PayloadFrame {..}) conn = do
         ":st" := paylStateByte,
         ":rid" := rid]
   where conQuery = "INSERT INTO Payload_UAV_Telemetry " <>
-            "(Vehicle, Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
+            "(Packet_Count, GPS_Data, Altitude, Pressure, Temperature, " <>
             "Airspeed, Attitude_Real, Attitude_I, Attitude_J, Attitude_K, " <>
             "Battery_Voltage, State) " <>
-            "SELECT :v, :pc, FrameID, :alt, :p, :t, :vair, :r, :i, :j, :k, :bv, :st " <>
+            "SELECT :pc, FrameID, :alt, :p, :t, :vair, :r, :i, :j, :k, :bv, :st " <>
             "FROM GPS WHERE rowid == :rid;"

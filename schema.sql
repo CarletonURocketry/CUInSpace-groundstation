@@ -1,5 +1,4 @@
 CREATE TABLE Payload_UAV_Telemetry (
-        Vehicle INTEGER NOT NULL,
         Packet_Count INTEGER NOT NULL,
 	GPS_Data INTEGER NOT NULL,
         Altitude REAL NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE GPS (
         Mission_Time INTEGER NOT NULL
 );
 CREATE TABLE Payload_Container_Telemetry (
-        Vehicle INTEGER NOT NULL,
         Packet_Count INTEGER NOT NULL,
 	GPS_Data INTEGER NOT NULL,
         Altitude REAL NOT NULL,
