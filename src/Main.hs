@@ -114,6 +114,6 @@ qmlThread ref frames = forever $ atomically (readTChan frames) >>= \case
                 Nothing -> return ()
             fireSignal rocketSig ref
         RocketAuxilliary -> return ()
-        UAVTelemetry pf -> atomically (writeTVar payloadSt (Just pf)) >> fireSignal containerSig ref
+        UAVTelemetry pf -> atomically (writeTVar payloadSt (Just pf)) >> fireSignal payloadSig ref
         ContainerTelemetry cf -> atomically (writeTVar containerSt (Just cf)) >> fireSignal containerSig ref
   where (Context {..}) = fromObjRef ref

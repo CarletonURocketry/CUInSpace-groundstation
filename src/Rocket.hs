@@ -76,8 +76,8 @@ rocketFrame = do
     let parachuteDeployed = testBit channel0 5
     let capacitorVoltage = 0.02625071131 * fromIntegral (shiftR channel0 6)
     let gpsDataValid = testBit channel1 0
-    let batteryTemp = 0.00322265625 * fromIntegral (shiftR channel1 6)
-    let ambientTemp = 0.00322265625 * fromIntegral (shiftR channel2 6)
+    let batteryTemp = (0.322265625 * fromIntegral (shiftR channel1 6)) - 50
+    let ambientTemp = (0.322265625 * fromIntegral (shiftR channel2 6)) - 50
     let batteryVoltage = 0.01434657506 * fromIntegral (shiftR channel7 6)
     let rocketState = case (state2, state1, state0) of
             (False, False, False) -> Standby
