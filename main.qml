@@ -14,9 +14,11 @@ Window {
 	Map {
 		id: mainMap
 		anchors.fill: parent
-		plugin: Plugin { name: "osm" }
-		//activeMapType: MapType.Terrain
-		center: QtPositioning.coordinate(32.990278, -106.969722)
+		plugin: Plugin {
+			name: "osm"
+			PluginParameter { name: "osm.mapping.offline.directory"; value: "map-cache" }
+		}
+		center: QtPositioning.coordinate(32.9406, -106.91492)
 		zoomLevel: 14
 
 		MapQuickItem {
