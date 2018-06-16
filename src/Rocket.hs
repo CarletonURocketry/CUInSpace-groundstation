@@ -79,7 +79,7 @@ rocketFrame = do
     let batteryTemp = (0.322265625 * fromIntegral (shiftR channel1 6)) - 50
     let ambientTemp = (0.322265625 * fromIntegral (shiftR channel2 6)) - 50
     let batteryVoltage = 0.01434657506 * fromIntegral (shiftR channel7 6)
-    let rocketState = case (state2, state1, state0) of
+    let rocketState = case (state0, state1, state2) of
             (False, False, False) -> Standby
             (False, False, True) -> PreFlight
             (False, True, False) -> PoweredAscent

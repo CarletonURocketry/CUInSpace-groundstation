@@ -216,7 +216,7 @@ Window {
 		"Payload UAV Status:Airspeed": function() { return payload == null ? "ND" : payload.airspeed.toPrecision(5) + " m/s" },
 		"Payload UAV Status:Attitude": function() {
 			if (payload == null) return "ND";
-			let h = payload.attitude;
+			var h = payload.attitude;
 			return h[0].toPrecision(4) + " + " + h[1].toPrecision(4) + "i + " + h[2].toPrecision(4) + "j + " + h[3].toPrecision(4) + "k"
 		},
 		"Payload UAV Location:Latitude": function() { return payload == null ? "ND" : niceLatLong(payload.gps.latitude, "N", "S") },
@@ -228,10 +228,10 @@ Window {
 	}
 
 	function niceLatLong(val, pos, neg) {
-		let degs = Math.floor(Math.abs(val));
-		let fdegs = Math.abs(val) - degs;
-		let mins = Math.floor(fdegs * 60);
-		let secs = 60 * ((fdegs * 60) - mins);
+		var degs = Math.floor(Math.abs(val));
+		var fdegs = Math.abs(val) - degs;
+		var mins = Math.floor(fdegs * 60);
+		var secs = 60 * ((fdegs * 60) - mins);
 		return degs + "°" + mins + "'" + secs.toPrecision(6) + "\"" + (val > 0 ? pos : neg);
 	}
 }
