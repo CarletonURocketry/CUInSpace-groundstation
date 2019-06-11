@@ -17,6 +17,7 @@ CREATE TABLE Rocket_Telemetry (
         Altitude REAL NOT NULL,
         Alt_Temp REAL NOT NULL,
 	Accel_Temp REAL NOT NULL,
+	Signal_To_Noise INTEGER NOT NULL,
         GPS_Data INTEGER,
         FOREIGN KEY(GPS_Data) REFERENCES GPS(FrameID)
 );

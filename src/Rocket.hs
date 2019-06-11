@@ -10,9 +10,10 @@ module Rocket (
 
 import Control.Monad (when)
 import Data.Bits (testBit)
-import Data.Int (Int16, Int64)
+import Data.Int (Int8, Int16, Int64)
 import Data.Monoid ((<>))
-import Data.Serialize.Get (Get, getInt16le, getInt32le, getWord8, getWord16le, getWord32le, skip)
+import Data.Serialize.Get (Get, getInt8, getInt16le, getInt32le, getWord8, getWord16le, getWord32le, skip)
+import Data.Serialize.IEEE754 (getFloat32le)
 import Data.Text (pack)
 import Data.Time (UTCTime, defaultTimeLocale, formatTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
@@ -30,7 +31,8 @@ data RocketFrame = RocketFrame {
     accelX :: Double, -- ^ Acceleration in x-axis (g).
     accelY :: Double, -- ^ Acceletation in y-axis (g).
     accelZ :: Double, -- ^ Acceleration in z-axis (g).
-    altitude :: Double, -- ^ Altitude (m).
+    altitude :: Float, -- ^ Altitude (m).
+    signalNoise :: Int8, -- ^ Signal to noise ratio.
     gpsData :: Maybe GpsData
 } deriving (Typeable)
 
@@ -79,7 +81,7 @@ rocketFrame = do
     accelerometerTemp <- fmap fromIntegral getInt16le
     -- Altimeter data
     altimeterTemp <- fmap ((100 *) . fromIntegral) getInt32le
-    altitude <- fmap ((/ 100) . fromIntegral) getWord32le
+    altitude <- getFloat32le
     gpsData <- if gpsDataValid
         then do
             utcTime <- fmap (posixSecondsToUTCTime . fromIntegral) getWord32le
@@ -92,6 +94,7 @@ rocketFrame = do
         else skip 20 >> return Nothing
     finiByte <- getWord8
     when (finiByte /= 0xCC) $ fail "Not a valid packet (no end byte)."
+    signalNoise <- getInt8
     return $ RocketFrame {..}
   where int16Range = fromIntegral ((maxBound - minBound) :: Int16)
 
@@ -105,7 +108,8 @@ instance DefaultClass RocketFrame where
         defPropertyConst "accelX" (return . accelX . fromObjRef),
         defPropertyConst "accelY" (return . accelY . fromObjRef),
         defPropertyConst "accelZ" (return . accelZ . fromObjRef),
-        defPropertyConst "altitude" (return . altitude . fromObjRef)]
+        defPropertyConst "altitude" (return . (realToFrac :: Float -> Double) . altitude . fromObjRef),
+        defPropertyConst "signalNoise" (return . (fromIntegral :: Int8 -> Int) . signalNoise . fromObjRef)]
 
 instance DefaultClass GpsData where
     classMembers = [
@@ -144,6 +148,7 @@ writeRocketFrame (RocketFrame {..}) conn = case gpsData of
             ":ay" := accelY,
             ":az" := accelZ,
             ":alt" := altitude,
+            ":sn" := signalNoise,
             ":rid" := rid]
     Nothing -> executeNamed conn withoutGpsQuery [
             ":mt" := missionTime,
@@ -154,14 +159,15 @@ writeRocketFrame (RocketFrame {..}) conn = case gpsData of
             ":ax" := accelX,
             ":ay" := accelY,
             ":az" := accelZ,
-            ":alt" := altitude]
+            ":alt" := altitude,
+            ":sn" := signalNoise]
   where withGpsQuery = "INSERT INTO Rocket_Telemetry " <>
             "(Mission_Time, State, Parachute_Deployed, Acceleration_X," <>
             "Acceleration_Y, Acceleration_Z, Altitude, Alt_Temp, Accel_Temp," <>
-            "GPS_Data) SELECT :mt, :st, :par, :ax, :ay, :az, :alt, :altt, " <>
-            ":accelt, FrameID FROM GPS WHERE rowid == :rid;"
+            "Signal_To_Noise, GPS_Data) SELECT :mt, :st, :par, :ax, :ay, :az,"<>
+            ":alt, :altt, :accelt, :sn, FrameID FROM GPS WHERE rowid == :rid;"
         withoutGpsQuery = "INSERT INTO Rocket_Telemetry " <>
             "(Mission_Time, State, Parachute_Deployed, Acceleration_X, " <>
             "Acceleration_Y, Acceleration_Z, Altitude, Alt_Temp, Accel_Temp," <>
-            "GPS_Data) VALUES(:mt, :st, :par, :ax, :ay, :az, :alt, :altt, " <>
-            ":accelt, NULL);"
+            "Signal_To_Noise, GPS_Data) VALUES(:mt, :st, :par, :ax, :ay, :az,"<>
+            ":alt, :altt, :accelt, :sn, NULL);"

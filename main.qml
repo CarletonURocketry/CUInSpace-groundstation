@@ -86,6 +86,7 @@ Window {
 		ListElement { group: "Rocket Status"; caption: "State" }
 		ListElement { group: "Rocket Status"; caption: "Chute Deployed" }
 		ListElement { group: "Rocket Status"; caption: "Mission Time" }
+		ListElement { group: "Rocket Status"; caption: "Signal:Noise" }
 		ListElement { group: "Rocket Location"; caption: "Latitude" }
 		ListElement { group: "Rocket Location"; caption: "Longitude" }
 		ListElement { group: "Rocket Location"; caption: "Altitude" }
@@ -104,6 +105,7 @@ Window {
 		"Rocket Status:State": function() { return rocket == null ? "ND" : rocket == null ? "ND" : rocket.state },
 		"Rocket Status:Chute Deployed": function() { return rocket == null ? "ND" : (rocket.parachuteDeployed ? "Yes" : "No") },
 		"Rocket Status:Mission Time": function() { return rocket == null ? "ND" : rocket.missionTime + " ms" },
+		"Rocket Status:Signal:Noise": function() { return rocket == null ? "ND" : rocket.signalNoise },
 		"Rocket Location:Latitude": function() { return gps == null ? "ND" : niceLatLong(gps.latitude, "N", "S") },
 		"Rocket Location:Longitude": function() { return gps == null ? "ND" : niceLatLong(gps.longitude, "E", "W") },
 		"Rocket Location:Altitude": function() { return gps == null ? "ND" : gps.altitude.toPrecision(5) + " m" },
