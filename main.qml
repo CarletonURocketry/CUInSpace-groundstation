@@ -113,11 +113,11 @@ Window {
 		"Rocket Location:Course": function() { return gps == null ? "ND" : gps.course.toPrecision(5) + "°" },
 		"Rocket Location:Time": function() { return gps == null ? "ND" : gps.time },
 		"Altimeter:Altitude": function() { return rocket == null ? "ND" : rocket.altitude.toPrecision(5) + " m" },
-		"Altimeter:Temperature": function() { return rocket == null ? "ND" : rocket.altimeterTemp.toPrecision(5) + "°" },
+		"Altimeter:Temperature": function() { return rocket == null ? "ND" : rocket.altimeterTemp.toPrecision(5) + " °C" },
 		"Accelerometer:X": function() { return rocket == null ? "ND" : rocket.accelX.toPrecision(5) + " <i>g</i>" },
 		"Accelerometer:Y": function() { return rocket == null ? "ND" : rocket.accelY.toPrecision(5) + " <i>g</i>" },
 		"Accelerometer:Z": function() { return rocket == null ? "ND" : rocket.accelZ.toPrecision(5) + " <i>g</i>" },
-		"Accelerometer:Temperature": function() { return rocket == null ? "ND" : rocket.accelerometerTemp.toPrecision(5) + "°" },
+		"Accelerometer:Temperature": function() { return rocket == null ? "ND" : rocket.accelerometerTemp.toPrecision(5) + " °C" },
 	}
 
 	function niceLatLong(val, pos, neg) {

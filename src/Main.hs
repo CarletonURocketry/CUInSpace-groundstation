@@ -40,7 +40,7 @@ argParse = info ((,) <$> some serialArg <*> dbArg)
 
 serialDeviceThread :: String -> TQueue String -> TChan RocketFrame -> IO ()
 serialDeviceThread dev logger frames = do
-    h <- openSerial dev B9600 8 One NoParity NoFlowControl
+    h <- openSerial dev B115200 8 One NoParity NoFlowControl
     runEffect $ fromHandle h >-> (await >>= nextFrame)
     hClose h
   where nextFrame bs = case B.elemIndex 0x52 bs of

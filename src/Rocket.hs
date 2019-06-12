@@ -80,7 +80,7 @@ rocketFrame = do
     accelZ <- fmap (((16/int16Range) *) . fromIntegral) getInt16le
     accelerometerTemp <- fmap fromIntegral getInt16le
     -- Altimeter data
-    altimeterTemp <- fmap ((100 *) . fromIntegral) getInt32le
+    altimeterTemp <- fmap ((/ 100) . fromIntegral) getInt32le
     altitude <- getFloat32le
     gpsData <- if gpsDataValid
         then do
